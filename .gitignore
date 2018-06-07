@@ -3,4 +3,5 @@ out/
 ACO-TSP.iml
 Main.class
 Main$Ant.class
+Main$1.class
 EuclidianDistance.class

@@ -80,6 +80,87 @@ public class Main {
 
         n = graph.length;
         m = (int) (n * antFactor);
+
+        trails = new double[n][n];
+        probs = new double[n];
+        ants = new Ant[m];
+        
+        for (int j = 0; j < m; j++)
+            ants[j] = new Ant();
+    }
+
+    private void probTo(Ant ant) {
+        int i = ant.tour[currentIndex];
+        double denom = 0.0;
+        
+        for(int l = 0; l < n; l++)
+            if(!ant.getVisited(l))
+                denom += Math.pow(trails[i][l], alpha) * Math.pow(1.0 / graph[i][l], beta);
+
+        for (int j = 0; j < n; j++) {
+            if (ant.getVisited(j)) {
+                probs[j] = 0.0;
+            } else {
+                double numerator = Math.pow(trails[i][j], alpha) * Math.pow(1.0 / graph[i][j], beta);
+                probs[j] = numerator / denom;
+            }
+        }
+    }
+
+    private int selectNextTown(Ant ant) {
+        if(rand.nextDouble() < randomness) {
+            int t = rand.nextInt(n - currentIndex); // cidade aleatoria
+            int j = -1;
+            for(int i = 0; i < n; i++) {
+                if(!ant.getVisited(i)) j++;
+                if(j == t) return i;
+            }
+        }
+
+        probTo(ant);
+
+        double r = rand.nextDouble();
+        double tot = 0;
+        for(int i = 0; i < n; i++) {
+            tot += probs[i];
+            if(tot >= r)
+                return i;
+        }
+
+        throw new RuntimeException("Não deveria ter chegado aqui");
+    }
+
+    private void setupAnts() {
+        currentIndex = -1;
+        for(int i = 0; i < m; i++) {
+            ants[i].clear();
+            ants[i].setVisited(rand.nextInt(n));
+        }
+        currentIndex++;
+    }
+
+    private void moveAnts() {
+        while(currentIndex < n - 1) {
+            for(Ant a : ants){
+                a.setVisited(selectNextTown(a));
+            }
+            currentIndex++;
+        }
+    }
+
+    public int[] solve() {
+        for (int i = 0; i < n; i++)
+            for (int j = 0; j < n; j++)
+                trails[i][j] = c;
+        
+        for(int i = 0; i < maxIteration; i++) {
+            setupAnts();
+            moveAnts();
+        }
+        
+        System.out.println("Best tour length: " + (bestTourLength - n));
+        //System.out.println("Best tour:" + tourToString(bestTour));
+        return bestTour.clone();
     }
 
     public static void main(String[] args) throws IOException {
@@ -87,11 +168,16 @@ public class Main {
         if(args.length < 1) {
             System.err.println("Por favor, coloque o caminho correto do arquivo nos argumentos!");
             return;
-        } else {
-            System.out.println(args[0]);
-        }
+        } 
 
         Main aco = new Main();
-        aco.readGraph(args[0]);
+        try {
+            aco.readGraph(args[0]);
+        } catch (Exception e) {
+            System.err.println("Erro lendo o grafo");
+            return;
+        }
+
+        while(true) aco.solve();
     }
 }
